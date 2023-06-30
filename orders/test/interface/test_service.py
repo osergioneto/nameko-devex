@@ -17,16 +17,51 @@ def order(db_session):
 
 @pytest.fixture
 def order_details(db_session, order):
-    db_session.add_all([
-        OrderDetail(
-            order=order, product_id="the_odyssey", price=99.51, quantity=1
-        ),
-        OrderDetail(
-            order=order, product_id="the_enigma", price=30.99, quantity=8
-        )
-    ])
+    order_details = [
+        OrderDetail(order=order, product_id="satoro_goju", price=100, quantity=1),
+        OrderDetail(order=order, product_id="ryomen_sukuna", price=66.60, quantity=3)
+    ]
+    db_session.add_all(order_details)
     db_session.commit()
     return order_details
+
+
+def test_list_orders_default_options(orders_rpc, order, order_details):
+    response = orders_rpc.list_orders()
+
+    assert len(response) == 1
+    assert order.id == response[0]['id']
+
+    assert len(response[0]['order_details']) == 2
+    assert response[0]['order_details'][0]['id'] == order_details[0].id
+    assert response[0]['order_details'][1]['id'] == order_details[1].id
+    assert response[0]['order_details'][0]['product_id'] == order_details[0].product_id
+    assert response[0]['order_details'][1]['product_id'] == order_details[1].product_id
+
+
+def test_list_orders_with_custom_options_without_data(orders_rpc, order):
+    response = orders_rpc.list_orders(3, 5)
+    assert len(response) == 0
+
+def test_count_orders(orders_rpc, order):
+    response = orders_rpc.count_orders()
+    assert response == 1
+
+def test_count_orders_with_extra_data(db_session, orders_rpc, order):
+    orders = [Order() for _ in range(5)]
+    db_session.add_all(orders)
+    db_session.commit()
+
+    response = orders_rpc.count_orders()
+    assert response == 6
+
+def test_list_orders_with_custom_options_with_data(db_session, orders_rpc, order):
+    orders = [Order() for _ in range(5)]
+    db_session.add_all(orders)
+    db_session.commit()
+
+    response = orders_rpc.list_orders(5, 5)
+    assert len(response) == 1
 
 
 def test_get_order(orders_rpc, order):
@@ -94,3 +129,4 @@ def test_can_update_order(orders_rpc, order):
 def test_can_delete_order(orders_rpc, order, db_session):
     orders_rpc.delete_order(order.id)
     assert not db_session.query(Order).filter_by(id=order.id).count()
+

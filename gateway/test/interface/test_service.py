@@ -177,6 +177,85 @@ class TestGetOrder(object):
         assert payload['error'] == 'ORDER_NOT_FOUND'
         assert payload['message'] == 'missing'
 
+class TestListOrders(object):
+    def test_list_orders_when_there_is_no_order(self, gateway_service, web_session):
+        # setup mock orders-service response:
+        gateway_service.orders_rpc.count_orders.return_value = 0
+        gateway_service.orders_rpc.list_orders.return_value = []
+
+        # setup mock products-service responses:
+        gateway_service.products_rpc.get.side_effect = []
+
+        # call the gateway service to list orders
+        response = web_session.get('/orders')
+
+        assert response.status_code == 200
+        assert response.json() == {
+            'total_orders': 0,
+            'total_pages': 0,
+            'page': 1,
+            'orders': []
+        }
+
+    def test_list_orders_when_orders_exists(self, gateway_service, web_session):
+        # setup mock orders-service response:
+        gateway_service.orders_rpc.count_orders.return_value = 1
+        gateway_service.orders_rpc.list_orders.return_value = [
+            {
+                'id': 1,
+                'order_details': [
+                    {
+                        'id': 1,
+                        'quantity': 1,
+                        'product_id': 'satoru_goju',
+                        'price': '500.00'
+                    }
+                ]
+            }
+        ]
+
+        # setup mock products-service responses:
+        gateway_service.products_rpc.get.side_effect = [
+            {
+                'id': 'satoru_goju',
+                'title': 'Satoru Gojo',
+                'maximum_speed': 3,
+                'in_stock': 1,
+                'passenger_capacity': 999
+            }
+        ]
+
+        # call the gateway service to list orders
+        response = web_session.get('/orders')
+
+        assert response.status_code == 200
+        assert response.json() == {
+            'total_orders': 1,
+            'total_pages': 1,
+            'page': 1,
+            'orders': [
+                {
+                    'id': 1,
+                    'order_details': [
+                        {
+                            'id': 1,
+                            'quantity': 1,
+                            'product_id': 'satoru_goju',
+                            'price': '500.00',
+                            'image': 'https://picsum.photos/300',
+                            'product': {
+                                'id': 'satoru_goju',
+                                'title': 'Satoru Gojo',
+                                'maximum_speed': 3,
+                                'in_stock': 1,
+                                'passenger_capacity': 999
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
 
 class TestCreateOrder(object):
 

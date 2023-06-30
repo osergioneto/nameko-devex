@@ -88,6 +88,33 @@ STD_APP_URL=http://localhost:8000
   ],
   "id": 3
 }
+=== Listing Orders ===
+{
+  "total_orders": 1,
+  "total_pages": 1,
+  "page": 1,
+  "orders": [
+    {
+      "order_details": [
+        {
+          "id": 3000,
+          "price": "1439.99",
+          "quantity": 1,
+          "product_id": "maki_zenin",
+          "product": {
+            "id": "maki_zenin",
+            "maximum_speed": 100,
+            "in_stock": 1,
+            "passenger_capacity": 1,
+            "title": "Maki Zenin"
+          },
+          "image": "https://picsum.photos/300"
+        }
+      ],
+      "id": 3000
+    }
+  ]
+}
 ```
 
 * Unit Test

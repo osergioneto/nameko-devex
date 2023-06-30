@@ -10,7 +10,6 @@ from gateway.entrypoints import http
 from gateway.exceptions import OrderNotFound, ProductNotFound
 from gateway.schemas import CreateOrderSchema, GetOrderSchema, ProductSchema
 
-
 class GatewayService(object):
     """
     Service acts as a gateway to other services over http.
@@ -108,7 +107,47 @@ class GatewayService(object):
             item['image'] = '{}/{}.jpg'.format(image_root, product_id)
 
         return order
+    
+    
+    @http("GET", "/orders")
+    def list_orders(self, request):
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        orders = self._list_orders(page, limit)
+        return Response(json.dumps(orders), mimetype='application/json')
 
+    
+    def _list_orders(self, page, limit):
+        skip = (page - 1) * limit
+        orders = self.fetch_orders(skip, limit)
+        total_orders = self.calculate_total_orders()
+        total_pages = self.calculate_total_pages(total_orders, limit)
+
+        response = {
+            'total_orders': total_orders,
+            'total_pages': total_pages,
+            'page': page,
+            'orders': orders
+        }
+
+        return response
+    
+    def fetch_orders(self, skip, limit):
+        orders = self.orders_rpc.list_orders(skip, limit)
+        for order in orders:
+            for item in order['order_details']:
+                product_id = item['product_id']
+                item['product'] = self.products_rpc.get(product_id)
+                item['image'] = 'https://picsum.photos/300' 
+        return orders
+    
+    def calculate_total_orders(self):
+        return self.orders_rpc.count_orders()
+
+    def calculate_total_pages(self, total_orders, limit):
+        return (total_orders + limit - 1) // limit
+    
+    
     @http(
         "POST", "/orders",
         expected_exceptions=(ValidationError, ProductNotFound, BadRequest)
