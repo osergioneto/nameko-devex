@@ -80,6 +80,23 @@ class TestCreateProduct(object):
         assert response.status_code == 400
         assert response.json()['error'] == 'VALIDATION_ERROR'
 
+class TestDeleteProduct(object):
+    def test_delete_product_non_existant(
+        self, gateway_service, web_session
+    ):
+        gateway_service.products_rpc.delete.return_value = False
+
+        response = web_session.delete('/products/fake_id')
+        assert response.status_code == 404
+        assert [call('fake_id')] == gateway_service.products_rpc.delete.call_args_list
+
+
+    def test_delete_product(self, gateway_service, web_session):
+        response = web_session.delete('/products/marathon')
+
+        assert response.status_code == 204
+        assert [call('marathon')] == gateway_service.products_rpc.delete.call_args_list
+    
 
 class TestGetOrder(object):
 
