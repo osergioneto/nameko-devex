@@ -64,7 +64,39 @@ scenarios:
         product_key: $.id
         default: NOT_FOUND
 
-    # 3. Create Orders
+    # 3. Create Product to Delete
+    - url: /products
+      label: products-to-delete
+      think-time: uniform(0s, 0s)
+      method: POST
+      headers:
+        cache-control: no-cache
+        Content-Type: application/json
+      body: >
+        {
+          "id": "product-to-delete-${__javaScript(Math.random())}",
+          "title": "The Marathon",
+          "passenger_capacity": 3000,
+          "maximum_speed": 1,
+          "in_stock": 1
+        }
+      extract-jsonpath:
+        product_to_delete: $.id
+        default: NOT_FOUND
+
+    # 4. Delete Product
+    - url: /products/${product_to_delete}
+      label: product-delete
+      think-time: uniform(0s, 0s)
+      method: DELETE
+
+      assert:
+      - contains:
+        - 204
+        subject: http-code
+        not: false
+
+    # 5. Create Orders
     - url: /orders
       label: orders-create
       think-time: uniform(0s, 0s)
@@ -90,7 +122,7 @@ scenarios:
       then:
         - action: continue
   
-    # 4. Get Orders
+    # 6. Get Orders
     - url: /orders/${order_id}
       label: order-get
       think-time: uniform(0s, 0s)
@@ -109,7 +141,7 @@ scenarios:
       then:
         - action: continue
 
-    # 5. List Orders
+    # 7. List Orders
     - url: /orders
       label: orders-list
       think-time: uniform(0s, 0s)

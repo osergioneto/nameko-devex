@@ -43,15 +43,27 @@ class StorageWrapper:
         else:
             return self._from_hash(product)
 
-    def list(self):
-        keys = self.client.keys(self._format_key('*'))
+    def list(self, product_ids=None):
+        if product_ids is None:
+            keys = self.client.keys(self._format_key('*'))
+        else:
+            keys = [self._format_key(product_id) for product_id in product_ids]
+
+        pipeline = self.client.pipeline()
+        pipeline.multi()
         for key in keys:
-            yield self._from_hash(self.client.hgetall(key))
+            pipeline.hgetall(key)
+
+        results = pipeline.execute()
+        return [self._from_hash(result) for result in results]
 
     def create(self, product):
         self.client.hmset(
             self._format_key(product['id']),
             product)
+        
+    def delete(self, product_id):
+        return bool(self.client.delete(self._format_key(product_id)))
 
     def decrement_stock(self, product_id, amount):
         return self.client.hincrby(
